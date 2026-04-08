@@ -23,7 +23,7 @@ const state = {
     episodeDone: false,
 };
 
-const API_BASE = window.location.origin;
+const API_BASE = ""; // Use relative paths for iframe compatibility on HF Spaces
 
 const ZONE_IDS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const ZONE_NAMES = {
@@ -95,7 +95,7 @@ async function stepEnv(action) {
         return;
     }
 
-    const data = await apiCall('/api/step', 'POST', action);
+    const data = await apiCall('/step', 'POST', action);
     if (data) {
         state.stepResult = data;
         state.observation = data.observation;
@@ -147,7 +147,7 @@ async function stepEnv(action) {
 }
 
 async function getState() {
-    const data = await apiCall('/api/state');
+    const data = await apiCall('/state');
     if (data) {
         state.envState = data;
     }
