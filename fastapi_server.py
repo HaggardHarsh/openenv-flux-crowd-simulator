@@ -34,7 +34,10 @@ def health():
 @app.post("/reset")
 def reset_env(req: ResetRequest):
     obs = env.reset(seed=req.seed, options={"task": req.task})
-    return {"observation": obs.model_dump()}
+    return {
+        "observation": obs.model_dump(),
+        "state": env.state().model_dump()
+    }
 
 @app.post("/step")
 def step_env(req: StepRequest):
@@ -52,7 +55,9 @@ def step_env(req: StepRequest):
             "reward": result.reward,
             "terminated": result.terminated,
             "truncated": result.truncated,
-            "info": result.info
+            "info": result.info,
+            "env_state": env.state().model_dump(),
+            "grade": env.grade().to_dict() if (result.terminated or result.truncated) else None
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -69,7 +74,7 @@ def state_env():
 def grade_env():
     try:
         g = env.grade()
-        return {"score": g.score, "letter_grade": g.letter_grade, "summary": g.summary}
+        return g.to_dict()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
