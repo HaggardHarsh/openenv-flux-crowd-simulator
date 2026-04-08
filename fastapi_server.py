@@ -2,6 +2,7 @@ import os
 import sys
 
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # Ensure we can import the module correctly
@@ -71,3 +72,7 @@ def grade_env():
         return {"score": g.score, "letter_grade": g.letter_grade, "summary": g.summary}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# Mount static visualization files at root
+viz_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "visualization")
+app.mount("/", StaticFiles(directory=viz_dir, html=True), name="static")

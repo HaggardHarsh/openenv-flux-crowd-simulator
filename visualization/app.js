@@ -75,7 +75,7 @@ async function resetEnv() {
     ZONE_IDS.forEach(id => state.timelineData[id] = []);
     clearTimeline();
 
-    const data = await apiCall('/api/reset', 'POST', {
+    const data = await apiCall('/reset', 'POST', {
         task: state.currentTask,
         seed: 42,
     });
