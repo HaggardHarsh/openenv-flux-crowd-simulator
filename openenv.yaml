@@ -1,0 +1,58 @@
+openenv_version: "1.0"
+metadata:
+  name: "crowd_management_env"
+  description: "AI-Powered Crowd Management Simulator to prevent stampede risks."
+  version: "0.1.0"
+  author: "Antigravity"
+
+action_space:
+  type: dict
+  description: "Action taken by the crowd management agent."
+  schema:
+    action_type:
+      type: str
+      enum: ["redirect", "gate_control", "alert", "no_op"]
+    source_zone:
+      type: str
+      description: "ID of the source zone."
+    target_zone:
+      type: str
+      description: "ID of the destination zone (for redirect)."
+    gate_index:
+      type: int
+      description: "Index of the gate to control (0-3)."
+    gate_open:
+      type: bool
+      description: "True to open, False to close."
+
+observation_space:
+  type: dict
+  description: "Current state of the 6 zones and overall risk."
+  schema:
+    zones:
+      type: list
+      description: "List of ZoneInfo objects."
+    total_population:
+      type: int
+    global_risk_score:
+      type: float
+    time_step:
+      type: int
+    max_steps:
+      type: int
+    alerts_active:
+      type: list
+    event_log:
+      type: list
+
+tasks:
+  - id: "easy"
+    description: "Matchday Warm-Up: calm matchday, single entrance."
+  - id: "medium"
+    description: "Derby Day Rush: multi-gate arrivals, two halftime surges."
+  - id: "hard"
+    description: "Championship Final Chaos: three entrances, massive crowds, severe constraint."
+
+entrypoint:
+  type: "fastapi"
+  module: "fastapi_server:app"

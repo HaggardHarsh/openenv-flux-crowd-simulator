@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flux — AI Crowd Management Simulator</title>
+    <meta name="description" content="AI-Powered Crowd Management OpenEnv Environment — Real-time simulation dashboard for stampede risk prevention.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ── Header ── -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="url(#logoGrad)" stroke-width="2.5" fill="none"/>
+                    <circle cx="16" cy="16" r="6" fill="url(#logoGrad)" opacity="0.8"/>
+                    <circle cx="16" cy="8" r="2" fill="#00f5d4"/>
+                    <circle cx="22" cy="20" r="2" fill="#f72585"/>
+                    <circle cx="10" cy="20" r="2" fill="#7209b7"/>
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" stop-color="#00f5d4"/>
+                            <stop offset="100%" stop-color="#7209b7"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <h1>Flux</h1>
+            </div>
+            <span class="header-subtitle">AI-Powered Crowd Management Simulator</span>
+        </div>
+        <div class="header-right">
+            <div class="status-pill" id="status-pill">
+                <span class="status-dot"></span>
+                <span class="status-text">Ready</span>
+            </div>
+            <div class="step-counter" id="step-counter">Step: 0 / 0</div>
+        </div>
+    </header>
+
+    <!-- ── Main Layout ── -->
+    <main id="app-main">
+        <!-- Left: Venue Map + Controls -->
+        <section class="panel panel-map" id="panel-map">
+            <div class="panel-header">
+                <h2>🏟 Stadium Venue</h2>
+                <div class="task-selector" id="task-selector">
+                    <button class="task-btn active" data-task="easy">Easy</button>
+                    <button class="task-btn" data-task="medium">Medium</button>
+                    <button class="task-btn" data-task="hard">Hard</button>
+                </div>
+            </div>
+
+            <!-- SVG Venue Map -->
+            <div class="venue-map-container" id="venue-map-container">
+                <svg id="venue-map" viewBox="0 0 600 520" preserveAspectRatio="xMidYMid meet">
+                    <!-- Connection lines -->
+                    <g class="connections" id="connections">
+                        <!-- A-B -->
+                        <line x1="210" y1="95" x2="145" y2="195" class="conn-line" data-from="A" data-to="B"/>
+                        <!-- A-C -->
+                        <line x1="390" y1="95" x2="455" y2="195" class="conn-line" data-from="A" data-to="C"/>
+                        <!-- B-D -->
+                        <line x1="180" y1="265" x2="250" y2="320" class="conn-line" data-from="B" data-to="D"/>
+                        <!-- B-E -->
+                        <line x1="100" y1="265" x2="100" y2="400" class="conn-line" data-from="B" data-to="E"/>
+                        <!-- C-D -->
+                        <line x1="420" y1="265" x2="350" y2="320" class="conn-line" data-from="C" data-to="D"/>
+                        <!-- C-F -->
+                        <line x1="500" y1="265" x2="500" y2="400" class="conn-line" data-from="C" data-to="F"/>
+                        <!-- D-E -->
+                        <line x1="230" y1="370" x2="150" y2="430" class="conn-line" data-from="D" data-to="E"/>
+                        <!-- D-F -->
+                        <line x1="370" y1="370" x2="450" y2="430" class="conn-line" data-from="D" data-to="F"/>
+                    </g>
+
+                    <!-- Flow arrows (animated) -->
+                    <g class="flow-arrows" id="flow-arrows"></g>
+
+                    <!-- Zone A: Main Entrance -->
+                    <g class="zone" id="zone-A" data-zone="A" transform="translate(300, 60)">
+                        <rect x="-100" y="-45" width="200" height="90" rx="12"/>
+                        <text class="zone-label" x="0" y="-15">Main Entrance</text>
+                        <text class="zone-pop" x="0" y="12" id="pop-A">0 / 1000</text>
+                        <text class="zone-density" x="0" y="30" id="density-A">0.00 ppm²</text>
+                        <circle class="risk-indicator" cx="80" cy="-25" r="8" id="risk-A"/>
+                        <text class="zone-id-label" x="-80" y="-25">A</text>
+                        <text class="zone-entry-label" x="0" y="-35">↓ ENTRY</text>
+                    </g>
+
+                    <!-- Zone B: North Stand -->
+                    <g class="zone" id="zone-B" data-zone="B" transform="translate(140, 220)">
+                        <rect x="-100" y="-45" width="200" height="90" rx="12"/>
+                        <text class="zone-label" x="0" y="-15">North Stand</text>
+                        <text class="zone-pop" x="0" y="12" id="pop-B">0 / 2000</text>
+                        <text class="zone-density" x="0" y="30" id="density-B">0.00 ppm²</text>
+                        <circle class="risk-indicator" cx="80" cy="-25" r="8" id="risk-B"/>
+                        <text class="zone-id-label" x="-80" y="-25">B</text>
+                    </g>
+
+                    <!-- Zone C: South Stand -->
+                    <g class="zone" id="zone-C" data-zone="C" transform="translate(460, 220)">
+                        <rect x="-100" y="-45" width="200" height="90" rx="12"/>
+                        <text class="zone-label" x="0" y="-15">South Stand</text>
+                        <text class="zone-pop" x="0" y="12" id="pop-C">0 / 2000</text>
+                        <text class="zone-density" x="0" y="30" id="density-C">0.00 ppm²</text>
+                        <circle class="risk-indicator" cx="80" cy="-25" r="8" id="risk-C"/>
+                        <text class="zone-id-label" x="-80" y="-25">C</text>
+                    </g>
+
+                    <!-- Zone D: Central Arena -->
+                    <g class="zone" id="zone-D" data-zone="D" transform="translate(300, 345)">
+                        <rect x="-120" y="-45" width="240" height="90" rx="12"/>
+                        <text class="zone-label" x="0" y="-15">Central Arena</text>
+                        <text class="zone-pop" x="0" y="12" id="pop-D">0 / 3000</text>
+                        <text class="zone-density" x="0" y="30" id="density-D">0.00 ppm²</text>
+                        <circle class="risk-indicator" cx="100" cy="-25" r="8" id="risk-D"/>
+                        <text class="zone-id-label" x="-100" y="-25">D</text>
+                    </g>
+
+                    <!-- Zone E: East Concourse -->
+                    <g class="zone" id="zone-E" data-zone="E" transform="translate(100, 460)">
+                        <rect x="-85" y="-40" width="170" height="80" rx="12"/>
+                        <text class="zone-label" x="0" y="-12">East Concourse</text>
+                        <text class="zone-pop" x="0" y="10" id="pop-E">0 / 800</text>
+                        <text class="zone-density" x="0" y="27" id="density-E">0.00 ppm²</text>
+                        <circle class="risk-indicator" cx="68" cy="-22" r="7" id="risk-E"/>
+                        <text class="zone-id-label" x="-68" y="-22">E</text>
+                    </g>
+
+                    <!-- Zone F: West Exit -->
+                    <g class="zone" id="zone-F" data-zone="F" transform="translate(500, 460)">
+                        <rect x="-85" y="-40" width="170" height="80" rx="12"/>
+                        <text class="zone-label" x="0" y="-12">West Exit</text>
+                        <text class="zone-pop" x="0" y="10" id="pop-F">0 / 800</text>
+                        <text class="zone-density" x="0" y="27" id="density-F">0.00 ppm²</text>
+                        <circle class="risk-indicator" cx="68" cy="-22" r="7" id="risk-F"/>
+                        <text class="zone-id-label" x="-68" y="-22">F</text>
+                        <text class="zone-exit-label" x="0" y="35">EXIT →</text>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="action-controls" id="action-controls">
+                <div class="action-controls-header">
+                    <h3>Agent Actions</h3>
+                    
+                    <!-- Mode Toggle Switch -->
+                    <div class="mode-toggle">
+                        <span class="toggle-label manual">Manual</span>
+                        <label class="switch">
+                            <input type="checkbox" id="mode-toggle-input">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="toggle-label auto">Auto AI</span>
+                    </div>
+                </div>
+                <p class="action-helper" id="action-helper">Choose parameters below, then click an action button to execute one simulation step.</p>
+
+                <!-- Auto-play overlay -->
+                <div class="autoplay-overlay" id="autoplay-overlay" style="display:none;">
+                    <div class="autoplay-overlay-msg">
+                        <span>🤖 Smart Agent is controlling. Toggle to Manual to take over.</span>
+                    </div>
+                </div>
+
+                <div class="action-row" id="manual-controls">
+                    <div class="action-group">
+                        <label>Source Zone</label>
+                        <select id="action-source">
+                            <option value="A">A — Main Entrance (3 gates)</option>
+                            <option value="B">B — North Stand (2 gates)</option>
+                            <option value="C">C — South Stand (2 gates)</option>
+                            <option value="D">D — Central Arena (4 gates)</option>
+                            <option value="E">E — East Concourse (2 gates)</option>
+                            <option value="F">F — West Exit (3 gates)</option>
+                        </select>
+                    </div>
+                    <div class="action-group">
+                        <label>Target Zone <span class="label-hint">(for Redirect)</span></label>
+                        <select id="action-target">
+                            <!-- Populated dynamically based on source zone neighbors -->
+                        </select>
+                    </div>
+                    <div class="action-group">
+                        <label>Gate <span class="label-hint">(for Open/Close)</span></label>
+                        <select id="action-gate">
+                            <!-- Populated dynamically based on source zone gate count -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Action feedback toast -->
+                <div class="action-toast" id="action-toast" style="display:none;"></div>
+
+                <div class="action-buttons" id="action-buttons">
+                    <button id="btn-redirect" class="action-btn btn-redirect" title="Redirect crowd flow from source zone toward target zone for 10 steps">🔀 Redirect</button>
+                    <button id="btn-close-gate" class="action-btn btn-close" title="Close the selected gate at source zone to reduce throughput">🔴 Close Gate</button>
+                    <button id="btn-open-gate" class="action-btn btn-open" title="Re-open the selected gate at source zone">🟢 Open Gate</button>
+                    <button id="btn-alert" class="action-btn btn-alert" title="Toggle crowd alert at source zone (reduces inflow by 40%)">🚨 Alert</button>
+                    <button id="btn-noop" class="action-btn btn-noop" title="Skip this turn without taking any action">⏭ No-op</button>
+                </div>
+                <div class="playback-controls">
+                    <button id="btn-reset" class="ctrl-btn" title="Reset episode">⟲ Reset</button>
+                    <div class="speed-control">
+                        <label>AI Speed</label>
+                        <input type="range" id="speed-slider" min="50" max="1000" value="300" step="50">
+                        <span id="speed-label">300ms</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Metrics + Events + Grading -->
+        <section class="panel panel-metrics" id="panel-metrics">
+            <!-- Global Metrics -->
+            <div class="metrics-card" id="global-metrics">
+                <h3>Global Metrics</h3>
+                <div class="metric-grid">
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-population">0</span>
+                        <span class="metric-label">Total Population</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-risk">0.000</span>
+                        <span class="metric-label">Risk Score</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-reward">0.000</span>
+                        <span class="metric-label">Cumulative Reward</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value" id="metric-arrivals">0</span>
+                        <span class="metric-label">Total Arrivals</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Gauge -->
+            <div class="metrics-card" id="risk-gauge-card">
+                <h3>Global Risk Level</h3>
+                <div class="risk-gauge" id="risk-gauge">
+                    <div class="gauge-fill" id="gauge-fill"></div>
+                    <div class="gauge-labels">
+                        <span>Safe</span>
+                        <span>Elevated</span>
+                        <span>Critical</span>
+                        <span>Stampede</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Per-Zone Bars -->
+            <div class="metrics-card" id="zone-bars-card">
+                <h3>Zone Occupancy</h3>
+                <div class="zone-bars" id="zone-bars">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Timeline Chart -->
+            <div class="metrics-card" id="timeline-card">
+                <h3>Density Timeline</h3>
+                <canvas id="timeline-canvas" width="400" height="160"></canvas>
+            </div>
+
+            <!-- Event Log -->
+            <div class="metrics-card" id="event-log-card">
+                <h3>Event Log</h3>
+                <div class="event-log" id="event-log">
+                    <div class="event-entry">System initialized. Select a task and press an action to begin.</div>
+                </div>
+            </div>
+
+            <!-- Grading -->
+            <div class="metrics-card grade-card" id="grade-card">
+                <h3>Episode Grade</h3>
+                <div class="grade-display" id="grade-display">
+                    <div class="grade-letter" id="grade-letter">—</div>
+                    <div class="grade-score" id="grade-score">— / 100</div>
+                </div>
+                <div class="grade-breakdown" id="grade-breakdown">
+                    <div class="grade-component">
+                        <span class="comp-label">Safety (40%)</span>
+                        <div class="comp-bar"><div class="comp-fill" id="comp-safety" style="width:0%"></div></div>
+                        <span class="comp-value" id="comp-safety-val">0</span>
+                    </div>
+                    <div class="grade-component">
+                        <span class="comp-label">Efficiency (15%)</span>
+                        <div class="comp-bar"><div class="comp-fill" id="comp-efficiency" style="width:0%"></div></div>
+                        <span class="comp-value" id="comp-efficiency-val">0</span>
+                    </div>
+                    <div class="grade-component">
+                        <span class="comp-label">Survival (30%)</span>
+                        <div class="comp-bar"><div class="comp-fill" id="comp-survival" style="width:0%"></div></div>
+                        <span class="comp-value" id="comp-survival-val">0</span>
+                    </div>
+                    <div class="grade-component">
+                        <span class="comp-label">Proactivity (15%)</span>
+                        <div class="comp-bar"><div class="comp-fill" id="comp-proactivity" style="width:0%"></div></div>
+                        <span class="comp-value" id="comp-proactivity-val">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Info -->
+            <div class="metrics-card" id="task-info-card">
+                <h3>Task Info</h3>
+                <div class="task-info" id="task-info">
+                    <p id="task-name">Select a task to begin</p>
+                    <p id="task-desc" class="task-description"></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
