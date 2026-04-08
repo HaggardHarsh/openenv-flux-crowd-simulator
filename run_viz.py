@@ -129,8 +129,8 @@ class FluxHandler(http.server.SimpleHTTPRequestHandler):
             self._handle_step(req)
         else:
             self.send_error(404, "API endpoint not found")
-        self._cors_headers()
-        self.end_headers()
+            self._cors_headers()
+            self.end_headers()
 
     # ── API Handlers ──
 
@@ -235,10 +235,10 @@ def main():
     print(f"  Server running at: http://localhost:{port}")
     print(f"  Visualization:     http://localhost:{port}/index.html")
     print(f"  API endpoints:")
-    print(f"    POST /api/reset   — Reset environment")
-    print(f"    POST /api/step    — Execute action")
-    print(f"    GET  /api/state   — Get state")
-    print(f"    GET  /api/health  — Health check")
+    print(f"    POST /reset   — Reset environment")
+    print(f"    POST /step    — Execute action")
+    print(f"    GET  /state   — Get state")
+    print(f"    GET  /health  — Health check")
     print("═" * 60)
     print("  Press Ctrl+C to stop.\n")
 

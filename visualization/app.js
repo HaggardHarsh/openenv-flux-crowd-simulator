@@ -19,7 +19,7 @@ const state = {
     gradeResult: null,
     envState: null,
     timelineData: {},   // {zoneId: [density values]}
-    maxTimeline: 100,
+    maxTimeline: 300,   // Match max steps of Hard mode
     episodeDone: false,
 };
 
@@ -490,15 +490,15 @@ function stopAutoPlay() {
 const TASK_INFO = {
     easy: {
         name: '🟢 Matchday Warm-Up (Easy)',
-        desc: 'Steady low-density crowd flow through single entrance. No surge events. Full exit capacity. Perfect for learning the basics.',
+        desc: 'Steady low-density crowd flow (100 steps). No surge events. Full exit capacity. Perfect for learning the basics.',
     },
     medium: {
         name: '🟡 Derby Day Rush (Medium)',
-        desc: 'Multi-gate arrivals with 2 halftime surge events. Higher crowd volume requires proactive gate management. Exits at 75% capacity.',
+        desc: 'Multi-gate arrivals (200 steps) with 2 halftime surges. Higher volume requires proactive gate management. Exits at 75% capacity.',
     },
     hard: {
         name: '🔴 Championship Final (Hard)',
-        desc: 'Massive crowds from 3 entrances. 5 overlapping surges with high panic. Exits at 50% capacity. Only expert management prevents disaster.',
+        desc: 'Massive crowds from 3 entry points (300 steps). 5 overlapping surges with high panic. Exits severely constrained (50%). Expert management only.',
     },
 };
 
