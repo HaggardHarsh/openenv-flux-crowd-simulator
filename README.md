@@ -1,3 +1,12 @@
+---
+title: Flux
+emoji: 🏟️
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # AI-Powered Crowd Management — OpenEnv Environment
 
 A simulation-based **OpenEnv** environment for training AI agents to learn and optimize crowd management strategies in high-density public spaces. The environment models a 6-zone stadium where an agent must prevent stampede situations by managing crowd flow, controlling access points, and issuing alerts.
