@@ -18,11 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from crowd_env.environment import CrowdManagementEnv
 from crowd_env.models import Action
 
-try:
-    from openai import OpenAI
-except ImportError:
-    print("Please install openai: pip install openai")
-    sys.exit(1)
+from openai import OpenAI
 
 
 SYSTEM_PROMPT = """
@@ -119,24 +115,15 @@ def run_inference_task(client: OpenAI, model_name: str, task_id: str, seed: int 
     return grade.score
 
 def main():
-    api_base_url = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
-    model_name = os.environ.get("MODEL_NAME", "gpt-4o-mini")
-    hf_token = os.environ.get("HF_TOKEN")
+    API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+    MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+    HF_TOKEN = os.getenv("HF_TOKEN")
 
-    if not hf_token:
-        # Some evaluators pass exactly what is written, fallback gently just in case
-        print("WARNING: HF_TOKEN environment variable is not set. Assuming unauthenticated or default credentials.")
-        hf_token = "dummy_token_if_needed"
-
-    try:
-        client = OpenAI(api_key=hf_token, base_url=api_base_url)
-    except Exception as e:
-        print(f"Failed to initialize OpenAI client: {e}")
-        sys.exit(1)
+    client = OpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
 
     # Run for all tasks
     for task in ["easy", "medium", "hard"]:
-        run_inference_task(client, model_name, task)
+        run_inference_task(client, MODEL_NAME, task)
 
 if __name__ == "__main__":
     main()
