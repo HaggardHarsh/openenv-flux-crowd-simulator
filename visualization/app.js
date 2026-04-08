@@ -570,6 +570,10 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             state.currentTask = btn.dataset.task;
             updateTaskInfo(state.currentTask);
+            
+            // Auto-reset when switching tasks for better UX
+            stopAutoPlay();
+            resetEnv();
         });
     });
 
