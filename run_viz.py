@@ -100,33 +100,35 @@ class FluxHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=VIZ_DIR, **kwargs)
 
     def do_GET(self):
+        """Handle API GET requests or fallback to static files."""
         parsed = urlparse(self.path)
         path = parsed.path
 
-        if path == "/api/state":
+        if path == "/state":
             self._handle_state()
-        elif path == "/api/health":
+        elif path == "/health":
             self._json_response({"status": "ok"})
         else:
             # Serve static files
             super().do_GET()
 
     def do_POST(self):
+        """Handle API POST requests."""
         parsed = urlparse(self.path)
         path = parsed.path
 
-        body = self._read_body()
-
-        if path == "/api/reset":
-            self._handle_reset(body)
-        elif path == "/api/step":
-            self._handle_step(body)
+        if path == "/reset":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            req = json.loads(post_data)
+            self._handle_reset(req)
+        elif path == "/step":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            req = json.loads(post_data)
+            self._handle_step(req)
         else:
-            self._json_response({"error": "Not found"}, 404)
-
-    def do_OPTIONS(self):
-        """Handle CORS preflight."""
-        self.send_response(200)
+            self.send_error(404, "API endpoint not found")
         self._cors_headers()
         self.end_headers()
 
