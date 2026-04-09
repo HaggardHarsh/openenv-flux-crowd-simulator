@@ -164,7 +164,9 @@ class CrowdManagementGrader:
             self.metrics.steps_all_safe += 1
         if any_elevated:
             self.metrics.steps_any_elevated += 1
-            self.metrics.elevated_incidents += len(elevated_zones) if elevated_zones else 1
+            # Count steps with elevated zones (not sum of all elevated zones)
+            # since the agent can only act on one zone per step
+            self.metrics.elevated_incidents += 1
         if any_critical:
             self.metrics.steps_any_critical += 1
 
@@ -173,8 +175,10 @@ class CrowdManagementGrader:
             self.metrics.total_actions += 1
             if not action_was_useful:
                 self.metrics.unnecessary_actions += 1
-            # Preemptive: action on an elevated zone before it becomes critical
-            if action_target_zone in elevated_zones and not any_critical:
+            # Preemptive: action targeting an elevated zone
+            # Counts even when other zones are critical — the agent is still
+            # being proactive about THIS zone's elevated status
+            if action_target_zone in elevated_zones:
                 self.metrics.preemptive_actions += 1
 
     def record_stampede(self, step: int, zone: str):

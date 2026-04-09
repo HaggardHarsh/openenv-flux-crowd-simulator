@@ -10,6 +10,12 @@ from gymnasium import spaces
 
 from crowd_env.environment import CrowdManagementEnv
 from crowd_env.models import Action
+from crowd_env.simulation import STADIUM_ZONES
+
+
+# Precompute gate counts per zone from the canonical layout
+_ZONE_GATE_COUNTS = {zc.zone_id: zc.num_gates for zc in STADIUM_ZONES}
+_ZONE_NEIGHBORS = {zc.zone_id: zc.neighbors for zc in STADIUM_ZONES}
 
 
 class CrowdGymWrapper(gym.Env):
@@ -43,7 +49,7 @@ class CrowdGymWrapper(gym.Env):
         )
 
     def _build_action_table(self):
-        """Construct a lookup table of valid actions."""
+        """Construct a lookup table of valid actions only."""
         table = []
         # 1. No-op
         table.append(Action.noop())
@@ -53,15 +59,16 @@ class CrowdGymWrapper(gym.Env):
             # Alert
             table.append(Action.issue_alert(z))
             
-            # Gate control (assume max 4 gates)
-            for g_idx in range(4):
+            # Gate control — use actual gate count per zone
+            num_gates = _ZONE_GATE_COUNTS.get(z, 2)
+            for g_idx in range(num_gates):
                 table.append(Action.close_gate(z, g_idx))
                 table.append(Action.open_gate(z, g_idx))
                 
-            # Redirects to all other zones
-            for target in self.zone_ids:
-                if z != target:
-                    table.append(Action.redirect(z, target))
+            # Redirects to valid neighbors only (not all zones)
+            neighbors = _ZONE_NEIGHBORS.get(z, ())
+            for target in neighbors:
+                table.append(Action.redirect(z, target))
                     
         return table
 

@@ -16,6 +16,7 @@ from crowd_env.models import (
 from crowd_env.simulation import CrowdSimulation
 from crowd_env.tasks import TaskConfig, get_task, TASKS
 from crowd_env.grader import CrowdManagementGrader
+from crowd_env.agent import smart_heuristic
 
 
 class CrowdManagementEnv:
@@ -103,6 +104,11 @@ class CrowdManagementEnv:
 
         self._step_count += 1
         info: Dict = {"action_result": "", "events": []}
+
+        # ── 0. Resolve "auto" actions via smart heuristic ──
+        if action.action_type == "auto":
+            obs = self._build_observation()
+            action = smart_heuristic(obs)
 
         # ── 1. Apply Agent Action ──
         action_result = self._apply_action(action)

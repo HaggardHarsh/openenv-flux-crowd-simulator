@@ -12,81 +12,21 @@ import sys
 import random
 from urllib.parse import urlparse
 
+# Handle Windows console encoding (cp1252 can't render emojis/box-drawing chars)
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ('utf-8', 'utf8'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 # Allow running from project root
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from crowd_env import CrowdManagementEnv, Action, ActionType
 from crowd_env.models import RiskLevel
+from crowd_env.agent import smart_heuristic
 
 # ─── Environment Instance ────────────────────────────────────────────────────
 
 env = CrowdManagementEnv()
 _initialized = False
-
-# ─── Smart Agent Logic (for auto-play) ──────────────────────────────────────
-
-def smart_action_from_obs(obs_dict):
-    """Generate a smart heuristic action from observation dict."""
-    zones = obs_dict.get("zones", [])
-    if not zones:
-        return Action.noop()
-
-    critical = [z for z in zones if z["risk_level"] == "critical"]
-    elevated = [z for z in zones if z["risk_level"] == "elevated"]
-
-    # Priority 1: Critical zones
-    if critical:
-        zone = max(critical, key=lambda z: z["density"])
-        zid = zone["zone_id"]
-
-        # Close a gate on entry zones
-        if zid in ("A", "E"):
-            open_gates = [i for i, g in enumerate(zone["gates_open"]) if g]
-            if open_gates:
-                return Action.close_gate(zid, open_gates[0])
-
-        # Issue alert
-        if not zone.get("alert_active", False):
-            return Action.issue_alert(zid)
-
-        # Redirect to least dense neighbor
-        neighbors = zone.get("neighbors", [])
-        if neighbors:
-            neighbor_zones = [z for z in zones if z["zone_id"] in neighbors]
-            if neighbor_zones:
-                best = min(neighbor_zones, key=lambda z: z["density"])
-                return Action.redirect(zid, best["zone_id"])
-
-    # Priority 2: Elevated zones
-    if elevated:
-        zone = max(elevated, key=lambda z: z["density"])
-        zid = zone["zone_id"]
-
-        if not zone.get("alert_active", False) and zone["density"] > 2.5:
-            return Action.issue_alert(zid)
-
-        neighbors = zone.get("neighbors", [])
-        if neighbors:
-            neighbor_zones = [z for z in zones if z["zone_id"] in neighbors]
-            if neighbor_zones:
-                best = min(neighbor_zones, key=lambda z: z["density"])
-                if best["density"] < zone["density"] * 0.7:
-                    return Action.redirect(zid, best["zone_id"])
-
-    # Priority 3: Re-open closed gates if safe
-    for z in zones:
-        if z["risk_level"] == "safe":
-            closed = [i for i, g in enumerate(z["gates_open"]) if not g]
-            if closed:
-                return Action.open_gate(z["zone_id"], closed[0])
-
-    # Priority 4: Lift alerts on safe zones
-    for z in zones:
-        if z.get("alert_active", False) and z["risk_level"] == "safe":
-            return Action.issue_alert(z["zone_id"])
-
-    return Action.noop()
-
 
 # ─── Request Handler ─────────────────────────────────────────────────────────
 
@@ -112,25 +52,33 @@ class FluxHandler(http.server.SimpleHTTPRequestHandler):
             # Serve static files
             super().do_GET()
 
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests."""
+        self.send_response(204)
+        self._cors_headers()
+        self.end_headers()
+
     def do_POST(self):
         """Handle API POST requests."""
         parsed = urlparse(self.path)
         path = parsed.path
 
-        if path == "/reset":
-            content_length = int(self.headers['Content-Length'])
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length > 0:
             post_data = self.rfile.read(content_length)
-            req = json.loads(post_data)
+            try:
+                req = json.loads(post_data)
+            except json.JSONDecodeError:
+                req = {}
+        else:
+            req = {}
+
+        if path == "/reset":
             self._handle_reset(req)
         elif path == "/step":
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            req = json.loads(post_data)
             self._handle_step(req)
         else:
             self.send_error(404, "API endpoint not found")
-            self._cors_headers()
-            self.end_headers()
 
     # ── API Handlers ──
 
@@ -150,14 +98,17 @@ class FluxHandler(http.server.SimpleHTTPRequestHandler):
     def _handle_step(self, body):
         global _initialized
         if not _initialized:
-            self._json_response({"error": "Environment not initialized. Call /api/reset first."}, 400)
+            self._json_response({"error": "Environment not initialized. Call /reset first."}, 400)
             return
 
         # Parse action
         if body and body.get("action_type") == "auto":
             # Use smart agent
-            obs_dict = env._build_observation().to_dict()
-            action = smart_action_from_obs(obs_dict)
+            if env._sim is None:
+                obs = env.reset(seed=42, options={"task": "easy"})
+            else:
+                obs = env._build_observation()
+            action = smart_heuristic(obs)
         elif body:
             action_type = body.get("action_type", "no_op")
             action = Action(

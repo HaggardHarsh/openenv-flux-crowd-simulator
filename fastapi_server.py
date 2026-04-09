@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from crowd_env.environment import CrowdManagementEnv
 from crowd_env.models import Action
+from crowd_env.agent import smart_heuristic
 
 app = FastAPI(title="Crowd Management OpenEnv", version="1.0.0")
 
@@ -42,13 +43,21 @@ def reset_env(req: ResetRequest):
 @app.post("/step")
 def step_env(req: StepRequest):
     try:
-        action = Action(
-            action_type=req.action_type,
-            source_zone=req.source_zone,
-            target_zone=req.target_zone,
-            gate_index=req.gate_index,
-            gate_open=req.gate_open
-        )
+        # Handle Smart Agent "auto" actions
+        if req.action_type == "auto":
+            if env._sim is None:
+                obs = env.reset(seed=42, options={"task": "easy"})
+            else:
+                obs = env._build_observation()
+            action = smart_heuristic(obs)
+        else:
+            action = Action(
+                action_type=req.action_type,
+                source_zone=req.source_zone,
+                target_zone=req.target_zone,
+                gate_index=req.gate_index,
+                gate_open=req.gate_open
+            )
         result = env.step(action)
         return {
             "observation": result.observation.model_dump(),
@@ -57,7 +66,7 @@ def step_env(req: StepRequest):
             "truncated": result.truncated,
             "info": result.info,
             "env_state": env.state().model_dump(),
-            "grade": env.grade().to_dict() if (result.terminated or result.truncated) else None
+            "grade": env.grade().to_dict()
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

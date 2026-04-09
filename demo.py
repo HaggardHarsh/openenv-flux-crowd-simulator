@@ -12,8 +12,13 @@ import random
 # Allow running from project root
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Handle Windows console encoding (cp1252 can't render emojis)
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ('utf-8', 'utf8'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 from crowd_env import CrowdManagementEnv, Action, ActionType, TASKS
 from crowd_env.grader import GradeResult
+from crowd_env.agent import smart_heuristic
 
 
 def print_header(text: str, char: str = "═", width: int = 72):
@@ -59,7 +64,10 @@ def random_action(env) -> Action:
         return Action.noop()
 
     elif action_type == ActionType.GATE_CONTROL:
-        gate_idx = random.randint(0, 2)
+        obs = env._build_observation()
+        zone_info = obs.get_zone(source)
+        max_gate = len(zone_info.gates_open) - 1 if zone_info and zone_info.gates_open else 1
+        gate_idx = random.randint(0, max_gate)
         gate_open = random.choice([True, False])
         if gate_open:
             return Action.open_gate(source, gate_idx)
@@ -72,65 +80,6 @@ def random_action(env) -> Action:
     return Action.noop()
 
 
-def smart_action(env, obs) -> Action:
-    """A simple heuristic agent that responds to risk levels."""
-    # Find the most critical zone
-    critical_zones = [z for z in obs.zones if z.risk_level == "critical"]
-    elevated_zones = [z for z in obs.zones if z.risk_level == "elevated"]
-
-    # Priority 1: Handle critical zones
-    if critical_zones:
-        zone = max(critical_zones, key=lambda z: z.density)
-        # If it's an entry zone, close a gate
-        if zone.zone_id in ("A", "E"):
-            open_gates = [i for i, g in enumerate(zone.gates_open) if g]
-            if open_gates:
-                return Action.close_gate(zone.zone_id, open_gates[0])
-
-        # Issue alert
-        if not zone.alert_active:
-            return Action.issue_alert(zone.zone_id)
-
-        # Redirect to least dense neighbor
-        neighbors = zone.neighbors
-        if neighbors:
-            best = min(
-                [z for z in obs.zones if z.zone_id in neighbors],
-                key=lambda z: z.density,
-                default=None,
-            )
-            if best:
-                return Action.redirect(zone.zone_id, best.zone_id)
-
-    # Priority 2: Preemptive action on elevated zones
-    if elevated_zones:
-        zone = max(elevated_zones, key=lambda z: z.density)
-        if not zone.alert_active and zone.density > 2.5:
-            return Action.issue_alert(zone.zone_id)
-
-        # Redirect flow away
-        neighbors = zone.neighbors
-        if neighbors:
-            best = min(
-                [z for z in obs.zones if z.zone_id in neighbors],
-                key=lambda z: z.density,
-                default=None,
-            )
-            if best and best.density < zone.density * 0.7:
-                return Action.redirect(zone.zone_id, best.zone_id)
-
-    # Priority 3: Re-open previously closed gates if safe
-    for z in obs.zones:
-        closed_gates = [i for i, g in enumerate(z.gates_open) if not g]
-        if closed_gates and z.risk_level == "safe":
-            return Action.open_gate(z.zone_id, closed_gates[0])
-
-    # Priority 4: Lift alerts if zone is safe
-    for z in obs.zones:
-        if z.alert_active and z.risk_level == "safe":
-            return Action.issue_alert(z.zone_id)  # Toggle off
-
-    return Action.noop()
 
 
 def run_episode(env, task_id: str, agent: str = "random", verbose: bool = True, seed: int = 42):
@@ -150,7 +99,7 @@ def run_episode(env, task_id: str, agent: str = "random", verbose: bool = True, 
     while True:
         # Choose action
         if agent == "smart":
-            action = smart_action(env, obs)
+            action = smart_heuristic(obs)
         else:
             action = random_action(env)
 
@@ -197,7 +146,7 @@ def run_episode(env, task_id: str, agent: str = "random", verbose: bool = True, 
 
 
 def main():
-    print_header("AI-Powered Crowd Management — OpenEnv Demo", "█", 72)
+    print_header("AI-Powered Crowd Management - OpenEnv Demo", "=", 72)
     print("  Demonstrating the CrowdManagementEnv with random + smart agents")
     print("  across Easy, Medium, and Hard difficulty tasks.\n")
 
@@ -218,7 +167,7 @@ def main():
         grades_smart[task_id] = grade
 
     # Summary
-    print_header("FINAL COMPARISON", "█")
+    print_header("FINAL COMPARISON", "=")
     print(f"\n  {'Task':<12} {'Random':>12} {'Smart':>12}")
     print(f"  {'─' * 12} {'─' * 12} {'─' * 12}")
     for task_id in ["easy", "medium", "hard"]:
