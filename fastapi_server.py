@@ -11,6 +11,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from crowd_env.environment import CrowdManagementEnv
 from crowd_env.models import Action
 from crowd_env.agent import smart_heuristic
+from stable_baselines3 import PPO
+from crowd_env.rl_wrapper import CrowdGymWrapper
+
+# Load RL model globally
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "ppo_crowd_final.zip")
+rl_model = None
+rl_wrapper = None
+
+try:
+    if os.path.exists(model_path):
+        rl_model = PPO.load(model_path)
+        rl_wrapper = CrowdGymWrapper(task_id="hard")
+except Exception as e:
+    print(f"Warning: Failed to load RL model ({e}). Auto-play will fall back to heuristic.")
 
 app = FastAPI(title="Crowd Management OpenEnv", version="1.0.0")
 
@@ -43,13 +57,19 @@ def reset_env(req: ResetRequest):
 @app.post("/step")
 def step_env(req: StepRequest):
     try:
-        # Handle Smart Agent "auto" actions
+        # Handle Auto actions (prioritize RL agent)
         if req.action_type == "auto":
             if env._sim is None:
                 obs = env.reset(seed=42, options={"task": "easy"})
             else:
                 obs = env._build_observation()
-            action = smart_heuristic(obs)
+                
+            if rl_model and rl_wrapper:
+                obs_array = rl_wrapper._encode_observation(obs)
+                action_idx, _ = rl_model.predict(obs_array, deterministic=True)
+                action = rl_wrapper._action_table[int(action_idx)]
+            else:
+                action = smart_heuristic(obs)
         else:
             action = Action(
                 action_type=req.action_type,

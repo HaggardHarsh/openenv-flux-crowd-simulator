@@ -22,6 +22,21 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from crowd_env import CrowdManagementEnv, Action, ActionType
 from crowd_env.models import RiskLevel
 from crowd_env.agent import smart_heuristic
+from stable_baselines3 import PPO
+from crowd_env.rl_wrapper import CrowdGymWrapper
+
+# ─── Global RL Model ────────────────────────────────────────────────────────
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "ppo_crowd_final.zip")
+rl_model = None
+rl_wrapper = None
+
+try:
+    if os.path.exists(model_path):
+        rl_model = PPO.load(model_path)
+        rl_wrapper = CrowdGymWrapper(task_id="hard")
+except Exception as e:
+    print(f"Warning: Failed to load RL model ({e}). Falling back to heuristic.")
+
 
 # ─── Environment Instance ────────────────────────────────────────────────────
 
@@ -103,12 +118,17 @@ class FluxHandler(http.server.SimpleHTTPRequestHandler):
 
         # Parse action
         if body and body.get("action_type") == "auto":
-            # Use smart agent
             if env._sim is None:
                 obs = env.reset(seed=42, options={"task": "easy"})
             else:
                 obs = env._build_observation()
-            action = smart_heuristic(obs)
+                
+            if rl_model and rl_wrapper:
+                obs_array = rl_wrapper._encode_observation(obs)
+                action_idx, _ = rl_model.predict(obs_array, deterministic=True)
+                action = rl_wrapper._action_table[int(action_idx)]
+            else:
+                action = smart_heuristic(obs)
         elif body:
             action_type = body.get("action_type", "no_op")
             action = Action(

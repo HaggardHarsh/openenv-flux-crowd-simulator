@@ -75,16 +75,17 @@ async function resetEnv() {
     ZONE_IDS.forEach(id => state.timelineData[id] = []);
     clearTimeline();
 
+    const seed = Math.floor(Math.random() * 100000);
     const data = await apiCall('/reset', 'POST', {
         task: state.currentTask,
-        seed: 42,
+        seed: seed,
     });
     if (data) {
         state.observation = data.observation;
         state.envState = data.state;
         state.running = true;
         updateUI();
-        addEvent(`🔄 Environment reset — Task: ${state.currentTask.toUpperCase()}`, 'success');
+        addEvent(`🔄 Environment reset — Task: ${state.currentTask.toUpperCase()} (seed: ${seed})`, 'success');
         setStatus('Running', true);
     }
 }
@@ -450,7 +451,7 @@ function startAutoPlay() {
     document.querySelector('.mode-toggle').classList.add('is-auto');
     document.getElementById('autoplay-overlay').style.display = 'flex';
 
-    addEvent('▶ Auto-play started (smart agent)', 'success');
+    addEvent('▶ Auto-play started (RL model)', 'success');
 
     // Use async recursive loop instead of setInterval
     // This prevents network congestion on the single-threaded Python server
@@ -462,7 +463,7 @@ function startAutoPlay() {
             return;
         }
         
-        await stepEnv({ action_type: 'auto' }); // Server will use smart agent
+        await stepEnv({ action_type: 'auto' }); // Server will use RL model
         
         if (state.autoPlaying && !state.episodeDone) {
             state.autoInterval = setTimeout(autoPlayLoop, state.speed);
